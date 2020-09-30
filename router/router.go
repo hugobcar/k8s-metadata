@@ -34,10 +34,16 @@ func NewRouter() *mux.Router {
 			GetClusters,
 		},
 		routeStruct{
-			"GetDetails",
+			"GetApps",
 			"GET",
-			"/v1/details",
-			GetDetails,
+			"/v1/apps",
+			GetApps,
+		},
+		routeStruct{
+			"GetAppsByClusters",
+			"GET",
+			"/v1/appsbyclusters",
+			GetAppsByClusters,
 		},
 	}
 

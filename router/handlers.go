@@ -13,16 +13,17 @@ func GetIndex(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	fmt.Fprintf(w, "/v1/clusters \n")
-	fmt.Fprintf(w, "/v1/details \n")
-	fmt.Fprintf(w, "/v1/newapps")
-	fmt.Fprintf(w, "/v1/removedapps")
+	fmt.Fprintf(w, "/v1/apps \n")
+	fmt.Fprintf(w, "/v1/appsbyclusters \n")
+	// fmt.Fprintf(w, "/v1/newapps \n")
+	// fmt.Fprintf(w, "/v1/removedapps")
 }
 
 // GetClusters - Return Clusters List
 func GetClusters(w http.ResponseWriter, r *http.Request) {
-	var response *DB.JsonListClustersResponse
+	var response *DB.JsonListClustersMap
 
-	response = DB.ListAllClusters(&DB.JsonListClustersResponse{})
+	response = DB.ListAllClusters(&DB.JsonListClustersMap{})
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
@@ -30,11 +31,23 @@ func GetClusters(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetDetails - Return details apps in clusters
-func GetDetails(w http.ResponseWriter, r *http.Request) {
-	var response DB.JsonDetailsResponse
+// GetApps - Return detail apps in clusters
+func GetApps(w http.ResponseWriter, r *http.Request) {
+	var response DB.JsonApps
 
-	response = DB.ListDetails()
+	response = DB.ListApps()
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetAppsByClusters - Return detail apps by Clusters in clusters
+func GetAppsByClusters(w http.ResponseWriter, r *http.Request) {
+	var response DB.JsonAppsByClustersMap
+
+	response = DB.ListAppsByClusters()
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)

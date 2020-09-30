@@ -2,4 +2,4 @@
 clean:
 	rm -rf k8s-metadata
 all:
-	go build -ldflags -o k8s-metadata main.go
+	go build -o k8s-metadata main.go
