@@ -15,8 +15,6 @@ func GetIndex(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "/v1/clusters \n")
 	fmt.Fprintf(w, "/v1/apps \n")
 	fmt.Fprintf(w, "/v1/appsbyclusters \n")
-	// fmt.Fprintf(w, "/v1/newapps \n")
-	// fmt.Fprintf(w, "/v1/removedapps")
 }
 
 // GetClusters - Return Clusters List
