@@ -31,6 +31,8 @@ type jsonApps struct {
 	HelmVersion    string `json:"helmVersion"`
 	HelmChart      string `json:"helmChart"`
 	HelmAPPVersion string `json:"helmAPPVersion"`
+	HpaEnabled     bool   `json:"hpaEnabled"`
+	VaultEnabled   bool   `json:"vaultEnabled"`
 }
 
 type jsonAppsByClusters struct {
@@ -40,6 +42,8 @@ type jsonAppsByClusters struct {
 	HelmVersion    string `json:"helmVersion"`
 	HelmChart      string `json:"helmChart"`
 	HelmAPPVersion string `json:"helmAPPVersion"`
+	HpaEnabled     bool   `json:"hpaEnabled"`
+	VaultEnabled   bool   `json:"vaultEnabled"`
 }
 
 // ListAllClusters - List all Clusters
@@ -74,6 +78,8 @@ func ListApps() JsonApps {
 	var SHelmVersion string
 	var SHelmChart string
 	var SHelmAPPVersion string
+	var SHpaEnabled bool
+	var SVaultEnabled bool
 
 	var response JsonApps
 
@@ -82,14 +88,14 @@ func ListApps() JsonApps {
 
 	defer db.Close()
 
-	rows, err := db.Query("SELECT clusters.nome, apps.namespace, apps.app, apps.type, IFNULL(helm.helm_version, \"\"), IFNULL(helm.chart, \"\"), IFNULL(helm.app_version, \"\") FROM apps INNER JOIN clusters ON (apps.id_cluster=clusters.id_cluster) LEFT JOIN helm ON (apps.app=helm.app AND apps.namespace=helm.namespace AND apps.id_cluster=helm.id_cluster) ORDER BY apps.namespace,apps.app")
+	rows, err := db.Query("SELECT clusters.nome, apps.namespace, apps.app, apps.type, IFNULL(helm.helm_version, \"\"), IFNULL(helm.chart, \"\"), IFNULL(helm.app_version, \"\"), apps.hpa_enabled, apps.vault_enabled FROM apps INNER JOIN clusters ON (apps.id_cluster=clusters.id_cluster) LEFT JOIN helm ON (apps.app=helm.app AND apps.namespace=helm.namespace AND apps.id_cluster=helm.id_cluster) ORDER BY apps.namespace,apps.app")
 	checkErr(err)
 
 	for rows.Next() {
-		err = rows.Scan(&SClusterName, &SNamespace, &SAppName, &SAppType, &SHelmVersion, &SHelmChart, &SHelmAPPVersion)
+		err = rows.Scan(&SClusterName, &SNamespace, &SAppName, &SAppType, &SHelmVersion, &SHelmChart, &SHelmAPPVersion, &SHpaEnabled, &SVaultEnabled)
 		checkErr(err)
 
-		response = append(response, jsonApps{ClusterName: SClusterName, AppName: SAppName, Namespace: SNamespace, AppType: SAppType, HelmVersion: SHelmVersion, HelmChart: SHelmChart, HelmAPPVersion: SHelmAPPVersion})
+		response = append(response, jsonApps{ClusterName: SClusterName, AppName: SAppName, Namespace: SNamespace, AppType: SAppType, HelmVersion: SHelmVersion, HelmChart: SHelmChart, HelmAPPVersion: SHelmAPPVersion, HpaEnabled: SHpaEnabled, VaultEnabled: SVaultEnabled})
 	}
 
 	return response
@@ -104,6 +110,8 @@ func ListAppsByClusters() JsonAppsByClustersMap {
 	var SHelmVersion string
 	var SHelmChart string
 	var SHelmAPPVersion string
+	var SHpaEnabled bool
+	var SVaultEnabled bool
 
 	response := make(JsonAppsByClustersMap)
 
@@ -112,14 +120,14 @@ func ListAppsByClusters() JsonAppsByClustersMap {
 
 	defer db.Close()
 
-	rows, err := db.Query("SELECT clusters.nome, apps.namespace, apps.app, apps.type, IFNULL(helm.helm_version, \"\"), IFNULL(helm.chart, \"\"), IFNULL(helm.app_version, \"\") FROM apps INNER JOIN clusters ON (apps.id_cluster=clusters.id_cluster) LEFT JOIN helm ON (apps.app=helm.app AND apps.namespace=helm.namespace AND apps.id_cluster=helm.id_cluster) ORDER BY apps.namespace,apps.app")
+	rows, err := db.Query("SELECT clusters.nome, apps.namespace, apps.app, apps.type, IFNULL(helm.helm_version, \"\"), IFNULL(helm.chart, \"\"), IFNULL(helm.app_version, \"\"), apps.hpa_enabled, apps.vault_enabled FROM apps INNER JOIN clusters ON (apps.id_cluster=clusters.id_cluster) LEFT JOIN helm ON (apps.app=helm.app AND apps.namespace=helm.namespace AND apps.id_cluster=helm.id_cluster) ORDER BY apps.namespace,apps.app")
 	checkErr(err)
 
 	for rows.Next() {
-		err = rows.Scan(&SClusterName, &SNamespace, &SAppName, &SAppType, &SHelmVersion, &SHelmChart, &SHelmAPPVersion)
+		err = rows.Scan(&SClusterName, &SNamespace, &SAppName, &SAppType, &SHelmVersion, &SHelmChart, &SHelmAPPVersion, &SHpaEnabled, &SVaultEnabled)
 		checkErr(err)
 
-		response[SClusterName] = append(response[SClusterName], jsonAppsByClusters{AppName: SAppName, Namespace: SNamespace, AppType: SAppType, HelmVersion: SHelmVersion, HelmChart: SHelmChart, HelmAPPVersion: SHelmAPPVersion})
+		response[SClusterName] = append(response[SClusterName], jsonAppsByClusters{AppName: SAppName, Namespace: SNamespace, AppType: SAppType, HelmVersion: SHelmVersion, HelmChart: SHelmChart, HelmAPPVersion: SHelmAPPVersion, HpaEnabled: SHpaEnabled, VaultEnabled: SVaultEnabled})
 	}
 
 	return response
