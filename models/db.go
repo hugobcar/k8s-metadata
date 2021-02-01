@@ -41,8 +41,9 @@ type Description struct {
 }
 
 type AWS struct {
-	Account int64  `json:"account"`
-	Region  string `json:"region"`
+	Account     int64  `json:"account"`
+	Region      string `json:"region"`
+	Environment string `json:"environment"`
 }
 
 type jsonApps struct {
@@ -76,51 +77,51 @@ func ListAllClusters(response *JsonListClustersMap) *JsonListClustersMap {
 	var SName string
 	var SAWSAccount int64
 	var SAWSRegion string
+	var SAWSEnvironment string
 	var SK8sVersion string
+
+	var SNodeType string
+	var SNodeInstance string
+	var STotalInstances int
+
+	var totalInstances int
+
+	description := make(DescriptionMap)
 
 	db, err := sql.Open("mysql", UserDB+":"+PassDB+"@tcp("+HostDB+":"+PortDB+")/"+DatabaseDB+"?charset=utf8")
 	checkErr(err)
 
 	defer db.Close()
 
-	rows, err := db.Query("SELECT id_cluster, nome, aws_account, aws_region, k8s_version FROM clusters")
+	rows, err := db.Query("SELECT id_cluster, nome, aws_account, aws_region, aws_env, k8s_version FROM clusters")
 	checkErr(err)
 
-	description := make(DescriptionMap)
-
-	description["master"] = append(
-		description["master"],
-		DescriptionStruct{
-			Description{
-				Type:               "m5.xlarge",
-				TotalTypeInstances: 3,
-			},
-		},
-	)
-
-	description["nodes"] = append(
-		description["nodes"],
-		DescriptionStruct{
-			Description{
-				Type:               "m5.2xlarge",
-				TotalTypeInstances: 30,
-			},
-		},
-	)
-
-	description["nodes"] = append(
-		description["nodes"],
-		DescriptionStruct{
-			Description{
-				Type:               "m5.xlarge",
-				TotalTypeInstances: 25,
-			},
-		},
-	)
-
 	for rows.Next() {
-		err = rows.Scan(&SIDCluster, &SName, &SAWSAccount, &SAWSRegion, &SK8sVersion)
+		err = rows.Scan(&SIDCluster, &SName, &SAWSAccount, &SAWSRegion, &SAWSEnvironment, &SK8sVersion)
 		checkErr(err)
+
+		description = DescriptionMap{}
+		totalInstances = 0
+
+		rows1, err := db.Query("SELECT node_type, node_instance, total_instances FROM nodes WHERE id_cluster=?", SIDCluster)
+		checkErr(err)
+
+		for rows1.Next() {
+			err = rows1.Scan(&SNodeType, &SNodeInstance, &STotalInstances)
+			checkErr(err)
+
+			description[SNodeType] = append(
+				description[SNodeType],
+				DescriptionStruct{
+					Description{
+						Type:               SNodeInstance,
+						TotalTypeInstances: STotalInstances,
+					},
+				},
+			)
+
+			totalInstances = totalInstances + STotalInstances
+		}
 
 		*response = append(
 			*response,
@@ -128,12 +129,13 @@ func ListAllClusters(response *JsonListClustersMap) *JsonListClustersMap {
 				ID:          SIDCluster,
 				ClusterName: SName,
 				Aws: AWS{
-					Account: SAWSAccount,
-					Region:  SAWSRegion,
+					Account:     SAWSAccount,
+					Region:      SAWSRegion,
+					Environment: SAWSEnvironment,
 				},
 				K8SVersion: SK8sVersion,
 				Instances: Instances{
-					TotalInstances: 55,
+					TotalInstances: totalInstances,
 					Description:    description,
 				},
 			},
