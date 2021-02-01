@@ -16,54 +16,128 @@ var PortDB string
 type JsonListClustersMap []jsonListClusters
 type JsonApps []jsonApps
 type JsonAppsByClustersMap map[string][]jsonAppsByClusters
+type DescriptionMap map[string][]DescriptionStruct
 
 type jsonListClusters struct {
-	ID          int    `json:"id"`
-	ClusterName string `json:"clusterName"`
-	K8sVersion  string `json:"k8sVersion"`
+	ID          int       `json:"id"`
+	Aws         AWS       `json:"aws"`
+	ClusterName string    `json:"clusterName"`
+	K8SVersion  string    `json:"k8sVersion"`
+	Instances   Instances `json:"instances"`
+}
+
+type Instances struct {
+	TotalInstances int            `json:"totalInstances"`
+	Description    DescriptionMap `json:"description"`
+}
+
+type DescriptionStruct struct {
+	Description
+}
+
+type Description struct {
+	Type               string `json:"type"`
+	TotalTypeInstances int    `json:"totalTypeInstances"`
+}
+
+type AWS struct {
+	Account int64  `json:"account"`
+	Region  string `json:"region"`
 }
 
 type jsonApps struct {
-	ClusterName    string `json:"clusterName"`
-	AppName        string `json:"appName"`
-	Namespace      string `json:"namespace"`
-	AppType        string `json:"appType"`
-	HelmVersion    string `json:"helmVersion"`
-	HelmChart      string `json:"helmChart"`
-	HelmAPPVersion string `json:"helmAPPVersion"`
-	HpaEnabled     bool   `json:"hpaEnabled"`
-	VaultEnabled   bool   `json:"vaultEnabled"`
+	ClusterName  string `json:"clusterName"`
+	Name         string `json:"name"`
+	Namespace    string `json:"namespace"`
+	Type         string `json:"type"`
+	HpaEnabled   bool   `json:"hpaEnabled"`
+	VaultEnabled bool   `json:"vaultEnabled"`
+	Helm         Helm   `json:"helm"`
+}
+
+type Helm struct {
+	Version    string `json:"version"`
+	Chart      string `json:"chart"`
+	APPVersion string `json:"appVersion"`
 }
 
 type jsonAppsByClusters struct {
-	AppName        string `json:"appName"`
-	Namespace      string `json:"namespace"`
-	AppType        string `json:"appType"`
-	HelmVersion    string `json:"helmVersion"`
-	HelmChart      string `json:"helmChart"`
-	HelmAPPVersion string `json:"helmAPPVersion"`
-	HpaEnabled     bool   `json:"hpaEnabled"`
-	VaultEnabled   bool   `json:"vaultEnabled"`
+	Name         string `json:"name"`
+	Namespace    string `json:"namespace"`
+	Type         string `json:"type"`
+	HpaEnabled   bool   `json:"hpaEnabled"`
+	VaultEnabled bool   `json:"vaultEnabled"`
+	Helm         Helm   `json:"helm"`
 }
 
 // ListAllClusters - List all Clusters
 func ListAllClusters(response *JsonListClustersMap) *JsonListClustersMap {
 	var SIDCluster int
 	var SName string
+	var SAWSAccount int64
+	var SAWSRegion string
+	var SK8sVersion string
 
 	db, err := sql.Open("mysql", UserDB+":"+PassDB+"@tcp("+HostDB+":"+PortDB+")/"+DatabaseDB+"?charset=utf8")
 	checkErr(err)
 
 	defer db.Close()
 
-	rows, err := db.Query("SELECT id_cluster, nome FROM clusters")
+	rows, err := db.Query("SELECT id_cluster, nome, aws_account, aws_region, k8s_version FROM clusters")
 	checkErr(err)
 
+	description := make(DescriptionMap)
+
+	description["master"] = append(
+		description["master"],
+		DescriptionStruct{
+			Description{
+				Type:               "m5.xlarge",
+				TotalTypeInstances: 3,
+			},
+		},
+	)
+
+	description["nodes"] = append(
+		description["nodes"],
+		DescriptionStruct{
+			Description{
+				Type:               "m5.2xlarge",
+				TotalTypeInstances: 30,
+			},
+		},
+	)
+
+	description["nodes"] = append(
+		description["nodes"],
+		DescriptionStruct{
+			Description{
+				Type:               "m5.xlarge",
+				TotalTypeInstances: 25,
+			},
+		},
+	)
+
 	for rows.Next() {
-		err = rows.Scan(&SIDCluster, &SName)
+		err = rows.Scan(&SIDCluster, &SName, &SAWSAccount, &SAWSRegion, &SK8sVersion)
 		checkErr(err)
 
-		*response = append(*response, jsonListClusters{ID: SIDCluster, ClusterName: SName})
+		*response = append(
+			*response,
+			jsonListClusters{
+				ID:          SIDCluster,
+				ClusterName: SName,
+				Aws: AWS{
+					Account: SAWSAccount,
+					Region:  SAWSRegion,
+				},
+				K8SVersion: SK8sVersion,
+				Instances: Instances{
+					TotalInstances: 55,
+					Description:    description,
+				},
+			},
+		)
 	}
 
 	return response
@@ -95,7 +169,22 @@ func ListApps() JsonApps {
 		err = rows.Scan(&SClusterName, &SNamespace, &SAppName, &SAppType, &SHelmVersion, &SHelmChart, &SHelmAPPVersion, &SHpaEnabled, &SVaultEnabled)
 		checkErr(err)
 
-		response = append(response, jsonApps{ClusterName: SClusterName, AppName: SAppName, Namespace: SNamespace, AppType: SAppType, HelmVersion: SHelmVersion, HelmChart: SHelmChart, HelmAPPVersion: SHelmAPPVersion, HpaEnabled: SHpaEnabled, VaultEnabled: SVaultEnabled})
+		response = append(
+			response,
+			jsonApps{
+				ClusterName:  SClusterName,
+				Name:         SAppName,
+				Namespace:    SNamespace,
+				Type:         SAppType,
+				HpaEnabled:   SHpaEnabled,
+				VaultEnabled: SVaultEnabled,
+				Helm: Helm{
+					Version:    SHelmVersion,
+					Chart:      SHelmChart,
+					APPVersion: SHelmAPPVersion,
+				},
+			},
+		)
 	}
 
 	return response
@@ -127,7 +216,21 @@ func ListAppsByClusters() JsonAppsByClustersMap {
 		err = rows.Scan(&SClusterName, &SNamespace, &SAppName, &SAppType, &SHelmVersion, &SHelmChart, &SHelmAPPVersion, &SHpaEnabled, &SVaultEnabled)
 		checkErr(err)
 
-		response[SClusterName] = append(response[SClusterName], jsonAppsByClusters{AppName: SAppName, Namespace: SNamespace, AppType: SAppType, HelmVersion: SHelmVersion, HelmChart: SHelmChart, HelmAPPVersion: SHelmAPPVersion, HpaEnabled: SHpaEnabled, VaultEnabled: SVaultEnabled})
+		response[SClusterName] = append(
+			response[SClusterName],
+			jsonAppsByClusters{
+				Name:         SAppName,
+				Namespace:    SNamespace,
+				Type:         SAppType,
+				HpaEnabled:   SHpaEnabled,
+				VaultEnabled: SVaultEnabled,
+				Helm: Helm{
+					Version:    SHelmVersion,
+					Chart:      SHelmChart,
+					APPVersion: SHelmAPPVersion,
+				},
+			},
+		)
 	}
 
 	return response
