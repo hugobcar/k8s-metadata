@@ -93,7 +93,7 @@ func ListAllClusters(response *JsonListClustersMap) *JsonListClustersMap {
 
 	defer db.Close()
 
-	rows, err := db.Query("SELECT id_cluster, nome, aws_account, aws_region, aws_env, k8s_version FROM clusters")
+	rows, err := db.Query("SELECT id_cluster, nome, aws_account, aws_region, aws_env, k8s_version FROM clusters ORDER BY nome")
 	checkErr(err)
 
 	for rows.Next() {
