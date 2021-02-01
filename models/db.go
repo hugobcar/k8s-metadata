@@ -19,7 +19,6 @@ type JsonAppsByClustersMap map[string][]jsonAppsByClusters
 type DescriptionMap map[string][]DescriptionStruct
 
 type jsonListClusters struct {
-	ID          int       `json:"id"`
 	Aws         AWS       `json:"aws"`
 	ClusterName string    `json:"clusterName"`
 	K8SVersion  string    `json:"k8sVersion"`
@@ -126,7 +125,6 @@ func ListAllClusters(response *JsonListClustersMap) *JsonListClustersMap {
 		*response = append(
 			*response,
 			jsonListClusters{
-				ID:          SIDCluster,
 				ClusterName: SName,
 				Aws: AWS{
 					Account:     SAWSAccount,
